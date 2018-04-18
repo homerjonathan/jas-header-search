@@ -1,0 +1,143 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-iconset-svg/iron-iconset-svg.html">
+
+
+<!--
+`jas-header-search`
+Provides a Search Icon, when clicked expands to an search input.  Traps keys and allows searching.
+@demo demo/index.html 
+-->
+
+<dom-module id="jas-header-search">
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+      }
+
+      #searchInput {
+        --paper-input-container-color: var(--app-primary-text-color,#000000);
+        --paper-input-container-focus-color: var(--app-primary-text-color,#000000);
+        --paper-input-container-input-color: var(--app-primary-text-color,#000000);
+      }
+
+      paper-icon-button.showsearch {
+        display: none;
+      }
+
+      paper-input.showsearch {
+        display: block;
+      }
+
+      paper-icon-button.hidesearch {
+        display: block;
+      }
+
+      paper-input.hidesearch {
+        display: none;
+      }
+    </style>
+    <iron-iconset-svg name="local" size="24">
+      <svg>
+        <defs>
+            <g id="search"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></g>
+            <g id="clear"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></g>
+        </defs>
+      </svg>
+    </iron-iconset-svg>
+    <paper-input class$="{{searchclass}}" no-label-float id="searchInput" value="{{pagefilter}}">
+      <iron-icon icon="local:search" slot="prefix"></iron-icon>
+      <paper-icon-button slot="suffix" on-tap="_tapHideSearch" icon="local:clear" alt="clear" title="clear">
+      </paper-icon-button>
+    </paper-input>
+    <paper-icon-button class$="{{searchclass}}" on-tap="_showSearch" icon="local:search">
+    </paper-icon-button>
+  </template>
+</dom-module>
+<script>
+  class JasHeaderSearch extends Polymer.Element {
+    static get is() { return 'jas-header-search'; }
+    static get properties() {
+      return {
+        searchPage: {
+          type: String,
+          value: "search",
+          notify: true
+        },
+        /** When search is active this changes this value.  Hook this into your application to change the page to the search */
+        page: {
+          type: String,
+          value: '',
+          notify: true,
+          reflectToAttribute: true,
+          observer: "_pageChanged"
+        },
+        searchclass: {
+          type: String,
+          value: "hidesearch" // init the value to true so it will be hidden on page load
+        },
+        /** Link to Element that is showing the filtered page search */
+        pagefilter: {
+          type: String,
+          reflectToAttribute: true,
+          notify: true,
+          value: "",
+          observer: "_pageFilterChanged"
+        }
+      }
+    }
+    constructor() {
+      super();
+      this.oldPage = "";
+    }
+    attached() {
+      app.search = this;
+    }
+    _pageChanged() {
+      // Hide if no longer on page search
+      if (this.page != this.searchPage) {
+        // If finished then hide search bar
+        this._hideSearch();
+      } else {
+        this.searchclass = "showsearch";
+      }
+    }
+    /*
+    Hide Search.  Return to previous page.
+    */
+    _tapHideSearch() {
+      this.page = this.oldPage;
+      this.fire('page_change', { page: this.page });
+      if (this.page != this.searchPage) {
+        // If finished then hide search bar
+        this._hideSearch();
+      }
+    }
+    /*
+      Sends a message with the new string to seearch for
+       */
+    _pageFilterChanged() {
+      this.fire('onsearch', { search: this.pagefilter });
+    }
+    _hideSearch() {
+      this.searchclass = "hidesearch";
+    }
+    _showSearch() {
+      this.$.searchInput.focus();
+      // Clear the Filter Value
+      this.$.searchInput.value = "";
+      // Store Old Page
+      this.oldPage = this.page;
+      this.page = this.searchPage;
+      // Trigger Page Change
+      this.fire('page_change', { page: this.searchPage });
+    }
+    fire(name, detail) {
+      document.dispatchEvent(new CustomEvent(name, { detail: detail }));
+    }
+  }
+  customElements.define(JasHeaderSearch.is, JasHeaderSearch);
+</script>
